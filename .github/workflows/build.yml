@@ -4,19 +4,53 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-      - name: Setup Gradle
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Create AeroQuant Project Files
         run: |
           mkdir -p app/src/main/java/com/aeroquant/turbo
           mkdir -p app/src/main/res/layout
-      - name: Build with Gradle
-        run: chmod +x gradlew && ./gradlew assembleDebug
+          
+          echo "rootProject.name = 'AeroQuant'" > settings.gradle
+          echo "include ':app'" >> settings.gradle
+
+          cat <<EOF > build.gradle
+          plugins { id 'com.android.application' version '8.1.0' apply false }
+          EOF
+
+          cat <<EOF > app/build.gradle
+          plugins { id 'com.android.application' }
+          android {
+              namespace 'com.aeroquant.turbo'
+              compileSdk 34
+              defaultConfig { applicationId "com.aeroquant.turbo"; minSdk 28; targetSdk 34; versionCode 1; versionName "1.0" }
+          }
+          EOF
+
+          cat <<EOF > app/src/main/java/com/aeroquant/turbo/MainActivity.kt
+          package com.aeroquant.turbo
+          import android.app.Activity
+          import android.os.Bundle
+          class MainActivity : Activity() {
+              override fun onCreate(s: Bundle?) { super.onCreate(s); }
+          }
+          EOF
+
+      - name: set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Build APK
+        run: gradle assembleDebug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: AeroQuant-App
+          name: AeroQuant-S21FE
           path: app/build/outputs/apk/debug/app-debug.apk
